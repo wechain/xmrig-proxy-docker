@@ -1,9 +1,5 @@
 FROM ubuntu:18.04
 
-
-# set version label
-ARG BUILD_DATE
-LABEL build_version="xmrig-proxy build-date:- ${BUILD_DATE}"
 LABEL maintainer="WeChain"
 
 ARG DEBIAN_FRONTEND=noninteractive
