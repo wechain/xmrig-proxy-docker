@@ -35,5 +35,11 @@ RUN cp /opt/xmrig-proxy/src/config.json /config/config.json
 # Ports
 EXPOSE 80 7777
 
+RUN echo 'nameserver 8.8.8.8' >> /etc/resolv.conf
+
 # Command
-CMD ["/opt/xmrig-proxy/xmrig-proxy", "-c", "/config/config.json"]
+# CMD ["/opt/xmrig-proxy/xmrig-proxy", "-c", "/config/config.json"]
+
+ENTRYPOINT ["/opt/xmrig-proxy/xmrig-proxy"]
+
+CMD ["-h"]
