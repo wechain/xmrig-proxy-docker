@@ -1,45 +1,25 @@
-FROM ubuntu:18.04
+FROM alpine AS builder
 
-LABEL maintainer="WeChain"
+# Install Xmrig Proxy
 
-ARG DEBIAN_FRONTEND=noninteractive
+RUN apk --no-cache upgrade \
+ && apk --no-cache add git build-base cmake libuv-dev libmicrohttpd-dev openssl-dev util-linux-dev \
+ && git clone https://github.com/xmrig/xmrig-proxy.git \
+ && sed -i "/^constexpr const int kDefaultDonateLevel = 2;/c\constexpr const int kDefaultDonateLevel = 0;" src/donate.h \
+ && mkdir xmrig-proxy/build \
+ && cd xmrig-proxy/build \
+ && cmake -DCMAKE_BUILD_TYPE=Release .. \
+ && make -j$(nproc)
 
-# Prepare directories
-RUN mkdir /config
+FROM alpine
 
-# Install dependencies
-RUN apt update && apt -y install \
-    build-essential \
-    cmake \
-    git \
-    libmicrohttpd-dev \
-    libssl-dev \
-    libuv1-dev \
-    uuid-dev && \
-    rm -rf /var/lib/apt/lists/*
+# Xmrig Proxy copy installation
 
-# Get Code
-WORKDIR /opt
-RUN git clone https://github.com/xmrig/xmrig-proxy && \
-    cd xmrig-proxy && \
-    git checkout v6.15.0 && \
-    sed -i "/^constexpr const int kDefaultDonateLevel = 2;/c\constexpr const int kDefaultDonateLevel = 0;" src/donate.h && \
-    mkdir build && \
-    cmake -DCMAKE_BUILD_TYPE=Release -DUV_LIBRARY=/usr/lib/x86_64-linux-gnu/libuv.a . && \
-    make
+RUN apk add --no-cache libuv libmicrohttpd util-linux
 
-# Volume
-VOLUME /config
-RUN cp /opt/xmrig-proxy/src/config.json /config/config.json
+COPY --from=builder /xmrig-proxy/build/xmrig-proxy /usr/local/bin/xmrig-proxy
 
-# Ports
-EXPOSE 80 7777
+# Entrypoint and command
 
-RUN echo 'nameserver 8.8.8.8' >> /etc/resolv.conf
-
-# Command
-# CMD ["/opt/xmrig-proxy/xmrig-proxy", "-c", "/config/config.json"]
-
-ENTRYPOINT ["/opt/xmrig-proxy/xmrig-proxy"]
-
-CMD ["-h"]
+ENTRYPOINT [ "/usr/local/bin/xmrig-proxy" ]
+CMD [ "--help" ]
